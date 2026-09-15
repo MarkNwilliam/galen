@@ -31,6 +31,11 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=str(UI_DIR / "static")), name="static")
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok", "app": "galen", "storage": os.getenv("STORAGE_BACKEND", "sqlite")}
+
+
 # ── Streaming token endpoint ────────────────────────────────────────────────
 @app.get("/api/streaming-token")
 def get_streaming_token(expires_in: int = 300, max_session: int = 3600):

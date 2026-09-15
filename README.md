@@ -1,5 +1,7 @@
 # ⚗️ Galen
 
+![Galen cover](docs/cover.png)
+
 **A voice-native knowledge management system for pharmaceutical manufacturing.**
 
 Shift handovers, standing huddles, and troubleshooting stories carry the most
@@ -128,3 +130,9 @@ deterministic path, so the suite is fast and deterministic.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+Deeper docs: [architecture](docs/ARCHITECTURE.md) ·
+[deployment](docs/DEPLOYMENT.md) ·
+[submission copy](docs/SUBMISSION.md).

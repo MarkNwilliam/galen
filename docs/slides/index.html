@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Galen — slides</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { size: 13.333in 7.5in; margin: 0; }
+  :root {
+    --navy: #0b1220; --ink: #0f172a; --deep: #10233b;
+    --sky: #38bdf8; --green: #22c55e; --muted: #94a3b8; --fg: #e2e8f0;
+  }
+  html, body { background: #000; }
+  .slide {
+    width: 1280px; height: 720px; position: relative; overflow: hidden;
+    background:
+      radial-gradient(circle at 78% 12%, rgba(56,189,248,.30), transparent 42%),
+      linear-gradient(120deg, var(--navy) 0%, var(--ink) 55%, var(--deep) 100%);
+    color: var(--fg);
+    font-family: Helvetica, Arial, sans-serif;
+    padding: 64px 72px;
+    page-break-after: always;
+  }
+  .slide:last-child { page-break-after: auto; }
+  .kicker { text-transform: uppercase; letter-spacing: .28em; font-size: 15px; color: var(--sky); margin-bottom: 14px; }
+  h1 { font-size: 58px; line-height: 1.08; font-weight: 700; letter-spacing: -.01em; }
+  h2 { font-size: 44px; line-height: 1.12; font-weight: 700; letter-spacing: -.01em; }
+  h3 { font-size: 22px; font-weight: 600; color: var(--sky); margin-bottom: 10px; }
+  .sub { font-size: 22px; line-height: 1.5; color: var(--muted); margin-top: 16px; max-width: 1050px; }
+  .grid { display: grid; gap: 22px; margin-top: 34px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .g4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .card { background: rgba(148,163,184,.08); border: 1px solid rgba(148,163,184,.18); border-radius: 14px; padding: 20px 22px; }
+  .card.hl { border-color: rgba(56,189,248,.55); background: rgba(56,189,248,.07); }
+  .card p { font-size: 17px; line-height: 1.45; color: #cbd5e1; margin-top: 6px; }
+  .card strong { display: block; font-size: 20px; color: var(--fg); margin-bottom: 8px; }
+  .n { color: var(--sky); font-weight: 700; margin-bottom: 6px; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; }
+  .foot { position: absolute; bottom: 26px; left: 72px; right: 72px; display: flex; justify-content: space-between; font-size: 14px; color: #64748b; }
+  .foot b { color: var(--sky); }
+  .pill { display: inline-block; border: 1px solid rgba(56,189,248,.5); color: var(--sky); border-radius: 999px; padding: 6px 14px; font-size: 14px; margin: 4px 4px 0 0; }
+  .title-glyph { position: absolute; right: 96px; top: 96px; }
+  .big-chip { font-size: 92px; font-weight: 800; color: var(--sky); }
+  .dash-wrap { margin-top: 30px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(148,163,184,.25); background: #fff; line-height: 0; }
+  .dash-wrap img { width: 100%; }
+  .url { color: var(--green); font-family: Menlo, monospace; font-size: 18px; }
+  .accent { color: var(--sky); }
+  .green { color: var(--green); }
+  .flow { display: flex; align-items: stretch; gap: 0; margin-top: 40px; }
+  .flow .step { flex: 1; border-top: 5px solid var(--sky); background: rgba(148,163,184,.07); padding: 18px 20px; margin-right: 1px; }
+  .flow .step span { display: block; color: var(--sky); font-size: 14px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px; }
+  .flow .step b { font-size: 20px; }
+  .flow .step p { font-size: 15px; color: #cbd5e1; margin-top: 7px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<section class="slide">
+  <div class="title-glyph">
+    <svg width="230" height="230" viewBox="0 0 200 220" fill="none" stroke="#38bdf8" stroke-width="12" stroke-linejoin="round">
+      <path d="M70 20 h60 v70 l85 150 a40 40 0 0 1 -35 60 h-160 a40 40 0 0 1 -35 -60 l85 -150 z"/>
+      <line x1="70" y1="20" x2="130" y2="20"/>
+      <path d="M55 210 h90" stroke="#22c55e"/>
+    </svg>
+  </div>
+  <div class="kicker">AssemblyAI Voice Agent Hackathon · 2026</div>
+  <h1>Galen</h1>
+  <div class="sub" style="font-size:28px; color:#cbd5e1; font-weight:600;">The voice knowledge bank for pharmaceutical manufacturing</div>
+  <div class="sub">Shift handovers carry the knowledge nobody writes down. Galen listens with AssemblyAI,<br>extracts cited knowledge, anchors it to live equipment state, and answers operators by voice.</div>
+  <div class="grid g3" style="margin-top:42px;">
+    <div class="card hl"><strong>Listen</strong><p>Realtime streaming STT, diarization, keyterms — multilingual plant floor.</p></div>
+    <div class="card hl"><strong>Extract</strong><p>LLM Gateway turns huddles into typed, cited knowledge entries.</p></div>
+    <div class="card hl"><strong>Answer</strong><p>Grounded, spoken answers with citations — nothing gets lost.</p></div>
+  </div>
+  <div class="foot"><span><b>Live</b> galen-kb.vercel.app</span><span><b>Code</b> github.com/MarkNwilliam/galen</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h2>Process knowledge evaporates <span class="accent">every shift change</span>.</h2>
+  <div class="sub">ICH Q10 §1.6.1 requires manufacturers to acquire, analyse, store and disseminate product and process knowledge.</div>
+  <div class="grid g3">
+    <div class="card"><strong>In people's heads</strong><p>Knowledge lives in 6 a.m. huddles and handovers — rarely written down.</p></div>
+    <div class="card"><strong>Re-discovered</strong><p>Deviations and near-misses repeat because the fix was never recorded.</p></div>
+    <div class="card"><strong>Reconstructed by hand</strong><p>QA rebuilds "what happened" after the fact, one transcript at a time.</p></div>
+    <div class="card"><strong>New-hire churn</strong><p>New operators repeat mistakes the night shift already solved.</p></div>
+    <div class="card"><strong>Multilingual reality</strong><p>Operators code-switch between English, Luganda, Swahili.</p></div>
+    <div class="card hl"><strong>Audit risk</strong><p>Knowledge gaps are invisible until an inspection or an incident.</p></div>
+  </div>
+  <div class="foot"><span>1 · Problem</span><span><b>Galen</b> — the voice knowledge bank</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">The solution</div>
+  <h2>From huddle to institutional memory — in four steps.</h2>
+  <div class="flow">
+    <div class="step"><span>1 · Capture</span><b>Streaming STT</b><p>AssemblyAI v3 transcribes the huddle live, with speakers and language labels.</p></div>
+    <div class="step"><span>2 · Extract</span><b>Cited entries</b><p>LLM Gateway + rule layer produce typed entries that cite exact turns.</p></div>
+    <div class="step"><span>3 · Anchor</span><b>Live twin</b><p>Metrics update equipment state; threshold breaches raise alerts.</p></div>
+    <div class="step"><span>4 · Answer</span><b>Cited answers</b><p>Operators ask by voice; get grounded, spoken answers — or book a gap.</p></div>
+  </div>
+  <div class="grid g2" style="margin-top:36px;">
+    <div class="card hl"><strong>Deterministic by design</strong><p>Every model step has a rule-based fallback, so a known phrase is never lost to a timeout or rate limit.</p></div>
+    <div class="card hl"><strong>Quiet when fine</strong><p>Only deviations, CAPAs and threshold breaches escalate to a human — approval is explicit.</p></div>
+  </div>
+  <div class="foot"><span>2 · Solution</span><span><b>Galen</b> — huddle → knowledge</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Live demo</div>
+  <h2>Running now.</h2>
+  <div class="dash-wrap"><img src="dash.png" alt="Galen live dashboard"></div>
+  <div class="sub" style="margin-top:14px;">Try it yourself — the demo is live at <span class="url">https://galen-kb.vercel.app</span> (backend: AWS Lambda + DynamoDB).</div>
+  <div class="foot"><span>3 · Live demo</span><span><b>Record</b> a handover → ask “What do I do when R2 runs hot?”</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Technology</div>
+  <h2>AssemblyAI at the core.</h2>
+  <div class="grid g3">
+    <div class="card hl"><strong>Streaming v3 STT</strong><p><span class="accent">universal-3-5-pro</span> live transcription over WebSocket — word-by-word, with speaker diarization and language detection.</p></div>
+    <div class="card hl"><strong>Keyterms prompting</strong><p>“Reactor R2”, “CAPA”, “out of specification” boosted at the audio layer on a noisy plant floor.</p></div>
+    <div class="card"><strong>LLM Gateway</strong><p>Structured extraction into typed entries with JSON-repair post-processing, in parallel with deterministic rules.</p></div>
+    <div class="card"><strong>Grounded Q&amp;A</strong><p>Retrieval over cited entries; answers audited back to the source turns and twin state.</p></div>
+    <div class="card hl"><strong>Batch + voice notes</strong><p>Upload a recording in the Ask page and it flows through the same pipeline.</p></div>
+    <div class="card"><strong>Browser TTS</strong><p>Spoken answers, hands-free on the plant floor — no extra backend.</p></div>
+  </div>
+  <div class="foot"><span>4 · Technology</span><span><b>Galen</b> — AssemblyAI STT + LLM Gateway</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Architecture</div>
+  <h2>Vercel frontend, AWS backend, one swap-point storage.</h2>
+  <div class="grid g3">
+    <div class="card"><strong>Vercel (static)</strong><p>index / capture / ask pages; <span class="accent">config.js</span> points at the API base with CORS.</p></div>
+    <div class="card"><strong>Browser → AssemblyAI</strong><p>Streaming WebSocket straight from the page; token minted by the backend.</p></div>
+    <div class="card hl"><strong>AWS Lambda + API Gateway</strong><p>FastAPI via Mangum; async AssemblyAI + LLM calls; 60s budget.</p></div>
+    <div class="card"><strong>DynamoDB (galen-kb)</strong><p>Entries, sessions, twin state, feedback — single-table <span class="accent">pk/sk</span>.</p></div>
+    <div class="card hl"><strong>Storage abstraction</strong><p><span class="accent">agent/repo.py</span> — SQLite locally, DynamoDB in production, same API.</p></div>
+    <div class="card"><strong>Ship it</strong><p><span class="url">scripts/build_lambda.py</span> + <span class="url">deploy_aws.py</span> + <span class="url">deploy_vercel.sh</span>.</p></div>
+  </div>
+  <div class="foot"><span>5 · Architecture</span><span>HTTP-only backend — no ingress WebSocket needed</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Business value</div>
+  <h2>Audit-ready knowledge, by talking.</h2>
+  <div class="grid g3">
+    <div class="card hl"><strong>ICH Q10 compliant</strong><p>Acquire, analyse, store, disseminate — every entry cites speaker, turn and twin state.</p></div>
+    <div class="card"><strong>Deviation reduction</strong><p>Root causes from huddles feed the answers the next shift hears.</p></div>
+    <div class="card"><strong>Onboarding speed</strong><p>New operators ask and get grounded answers instead of guessing.</p></div>
+    <div class="card"><strong>Multilingual</strong><p>English / Luganda / Swahili detection, on African plant floors.</p></div>
+    <div class="card hl"><strong>Self-healing knowledge</strong><p>“No, still stuck” books a gap as a new flagged entry — nothing lost.</p></div>
+    <div class="card"><strong>Human in the loop</strong><p>Approve / Dismiss gate on deviations and CAPA candidates.</p></div>
+  </div>
+  <div class="foot"><span>6 · Business value</span><span><b>Galen</b> — quiet when fine, cited when it matters</span></div>
+</section>
+
+<section class="slide">
+  <div class="kicker">Thank you</div>
+  <h2>Galen — <span class="accent">talk to your plant.</span></h2>
+  <div class="grid g2" style="margin-top:34px;">
+    <div class="card hl"><strong>Try the demo</strong><p class="url">https://galen-kb.vercel.app</p><p>(ask: “What do I do when Reactor R2 runs hot?”)</p></div>
+    <div class="card hl"><strong>Read the code</strong><p class="url">https://github.com/MarkNwilliam/galen</p><p>FastAPI + DynamoDB + vanilla JS · MIT</p></div>
+  </div>
+  <div class="grid g4" style="margin-top:28px;">
+    <div class="card"><strong>AssemblyAI</strong><p>Streaming v3 STT · LLM Gateway · diarization</p></div>
+    <div class="card"><strong>Backend</strong><p>AWS Lambda · API Gateway · DynamoDB</p></div>
+    <div class="card"><strong>Frontend</strong><p>Vercel · Web Audio · Browser TTS</p></div>
+    <div class="card"><strong>Domain</strong><p>ICH Q10 §1.6.1 knowledge management</p></div>
+  </div>
+  <div class="foot"><span>Galen — voice-native pharmaceutical knowledge management</span><span><b>Mark N. Williams</b></span></div>
+</section>
+
+</body>
+</html>

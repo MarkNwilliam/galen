@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galen — Capture</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <nav>
+    <span class="brand">⚗️ Galen</span>
+    <a href="/">Dashboard</a>
+    <a href="/capture">Capture</a>
+    <a href="/ask">Ask</a>
+  </nav>
+
+  <main>
+    <h1>Capture a Huddle</h1>
+
+    <form id="meta">
+      <label>Equipment
+        <select name="equipment">
+          <option value="reactor_r2">Reactor R2</option>
+          <option value="line_4">Line 4 (Packaging)</option>
+        </select>
+      </label>
+      <label>Product <input name="product" value="Atorvastatin 20mg" /></label>
+      <label>Batch <input name="batch" value="B-101" /></label>
+    </form>
+
+    <div class="toolbar">
+      <button id="recordBtn" onclick="toggleRecord()">🎙 Start Huddle</button>
+      <button id="replayBtn" onclick="replayFixture()">▶ Replay demo huddle</button>
+    </div>
+
+    <div id="status" class="status">Tap Start to begin listening.</div>
+
+    <div class="two-col">
+      <section>
+        <h2>Live Transcript</h2>
+        <div id="transcript"></div>
+      </section>
+      <section>
+        <h2>Twin State</h2>
+        <div id="twin"></div>
+        <h2>Extracted Entries</h2>
+        <div id="entries"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/static/capture.js"></script>
+</body>
+</html>

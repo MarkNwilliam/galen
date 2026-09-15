@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galen — Plant Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <nav>
+    <span class="brand">⚗️ Galen</span>
+    <a href="/">Dashboard</a>
+    <a href="/capture">Capture</a>
+    <a href="/ask">Ask</a>
+  </nav>
+
+  <main>
+    <h1>Plant Overview</h1>
+
+    <section>
+      <h2>Twin-Lite State</h2>
+      <div id="twin" class="cards"></div>
+    </section>
+
+    <section>
+      <h2>Flagged Knowledge Entries</h2>
+      <div id="flagged"></div>
+    </section>
+
+    <section>
+      <h2>Recent Sessions</h2>
+      <div id="sessions"></div>
+    </section>
+  </main>
+
+  <script>
+    async function load() {
+      const twin = await (await fetch('/api/twin/reactor_r2')).json();
+      const twinHtml = Object.entries(twin).map(([k, v]) =>
+        `<div class="card"><strong>${k}</strong><br/>${v.value} ${v.unit || ''}<br/><small>${v.updated || ''}</small></div>`
+      ).join('');
+      document.getElementById('twin').innerHTML = twinHtml;
+
+      const entries = await (await fetch('/api/entries?status=flag')).json();
+      const flagHtml = entries.map(e => `
+        <div class="entry flagged">
+          <strong>${e.title}</strong> <span class="tag">${e.entry_type}</span>
+          <p>${e.body}</p>
+          <small>By ${e.speaker || '?'} · ${e.created_at || ''} · parsed by ${e.parsed_by}</small>
+          <div class="actions">
+            <button onclick="approve('${e.id}')">Approve</button>
+            <button onclick="dismiss('${e.id}')">Dismiss</button>
+          </div>
+        </div>`).join('');
+      document.getElementById('flagged').innerHTML = flagHtml || '<p>No flagged entries.</p>';
+
+      const sessions = await (await fetch('/api/sessions')).json();
+      const sessHtml = sessions.map(s => `
+        <div class="entry">
+          <strong>Huddle ${s.id.slice(0, 8)}</strong> · ${s.equipment} · ${s.participants || ''}
+          <br/><small>${s.started_at || ''}</small>
+        </div>`).join('');
+      document.getElementById('sessions').innerHTML = sessHtml || '<p>No sessions yet.</p>';
+    }
+
+    async function approve(id) {
+      await fetch(`/api/entry/${id}/approve`, { method: 'POST' });
+      load();
+    }
+    async function dismiss(id) {
+      await fetch(`/api/entry/${id}/dismiss`, { method: 'POST' });
+      load();
+    }
+
+    load();
+  </script>
+</body>
+</html>

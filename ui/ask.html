@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galen — Ask</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <nav>
+    <span class="brand">⚗️ Galen</span>
+    <a href="/">Dashboard</a>
+    <a href="/capture">Capture</a>
+    <a href="/ask">Ask</a>
+  </nav>
+
+  <main>
+    <h1>Ask the Floor</h1>
+
+    <form id="askForm">
+      <label>Equipment
+        <select name="equipment">
+          <option value="reactor_r2">Reactor R2</option>
+          <option value="line_4">Line 4 (Packaging)</option>
+        </select>
+      </label>
+      <label>Question
+        <input name="question" placeholder="What do I do when reactor R2 runs hot?" style="width:80%" />
+      </label>
+      <button type="submit">Ask</button>
+      <button type="button" id="voiceAsk" onclick="voiceAsk()">🎙 Ask by Voice</button>
+    </form>
+
+    <section>
+      <h2>Answer</h2>
+      <div id="answer" class="answer"></div>
+      <div id="feedback"></div>
+      <div id="context"></div>
+    </section>
+  </main>
+
+  <script src="/static/ask.js"></script>
+</body>
+</html>

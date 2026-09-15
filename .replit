@@ -1,0 +1,17 @@
+run = "python -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python -m scripts.seed_demo && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+entrypoint = "app/main.py"
+
+[nix]
+channel = "stable-24_05"
+
+[env]
+HOST = "0.0.0.0"
+STORAGE_BACKEND = "sqlite"
+
+[[ports]]
+localPort = 8000
+externalPort = 80
+
+[deployment]
+run = ["sh", "-c", "python -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python -m scripts.seed_demo && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
+deploymentTarget = "cloudrun"

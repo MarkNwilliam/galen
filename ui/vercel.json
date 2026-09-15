@@ -1,0 +1,9 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://3strtwnmd0.execute-api.us-east-1.amazonaws.com/prod/api/:path*"
+    }
+  ]
+}

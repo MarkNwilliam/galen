@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from agent.config import ASSEMBLYAI_API_KEY, HOST, PORT
-from agent.storage import init_db, _get_conn
+from agent import repo
 from agent.twin import get_equipment_state, update_equipment_state, check_twin_alerts
 from agent.extract import extract_entries
 from agent.query import ask_knowledge
@@ -15,7 +15,7 @@ from agent.query import ask_knowledge
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    repo.init()
     yield
 
 
@@ -33,7 +33,7 @@ app.mount("/static", StaticFiles(directory=str(UI_DIR / "static")), name="static
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "app": "galen", "storage": os.getenv("STORAGE_BACKEND", "sqlite")}
+    return {"status": "ok", "app": "galen", "storage": repo.backend_name()}
 
 
 # ── Streaming token endpoint ────────────────────────────────────────────────
@@ -56,31 +56,10 @@ def get_streaming_token(expires_in: int = 300, max_session: int = 3600):
 # ── Seed equipment ───────────────────────────────────────────────────────────
 @app.post("/api/seed")
 def seed_plant():
-    conn = _get_conn()
-    now = datetime.datetime.utcnow().isoformat()
-    for eq, area, product in [
-        ("reactor_r2", "API Manufacturing", "Atorvastatin 20mg"),
-        ("line_4", "Packaging", "Atorvastatin 20mg"),
-    ]:
-        conn.execute(
-            "INSERT OR IGNORE INTO equipment (id, name, area, product, created_at) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (eq, eq.replace("_", " ").title(), area, product, now),
-        )
-        conn.execute(
-            "INSERT OR IGNORE INTO metrics "
-            "(equipment_id, metric_key, value, unit, source, last_updated) "
-            "VALUES (?, 'temperature', 55.0, '°C', 'seeded', ?)",
-            (eq, now),
-        )
-        conn.execute(
-            "INSERT OR IGNORE INTO metrics "
-            "(equipment_id, metric_key, value, unit, source, last_updated) "
-            "VALUES (?, 'oee', 82.0, '%', 'seeded', ?)",
-            (eq, now),
-        )
-    conn.commit()
-    conn.close()
+    repo.seed_equipment([
+        {"id": "reactor_r2", "name": "Reactor R2", "area": "API Manufacturing", "product": "Atorvastatin 20mg"},
+        {"id": "line_4", "name": "Line 4", "area": "Packaging", "product": "Atorvastatin 20mg"},
+    ])
     return JSONResponse({"seeded": ["reactor_r2", "line_4"]})
 
 
@@ -94,25 +73,14 @@ def record_huddle(request: dict):
     batch     = request.get("batch", "")
     turns     = request.get("turns", [])
 
-    conn = _get_conn()
     now = datetime.datetime.utcnow().isoformat()
     participants = list({t.get("speaker", "?") for t in turns})
-    conn.execute(
-        "INSERT INTO sessions "
-        "(id, site, area, equipment, product, batch, participants, started_at, ended_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (session_id, "site_1", "floor_1", equipment, product, batch,
-         json.dumps(participants), now, now),
-    )
-    for i, t in enumerate(turns):
-        conn.execute(
-            "INSERT INTO transcript (session_id, turn, speaker, text, start_ms, end_ms, language) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (session_id, i, t.get("speaker", ""), t.get("text", ""),
-             t.get("start_ms", 0), t.get("end_ms", 0), t.get("language", "en")),
-        )
-    conn.commit()
-    conn.close()
+    repo.create_session({
+        "id": session_id, "site": "site_1", "area": "floor_1",
+        "equipment": equipment, "product": product, "batch": batch,
+        "participants": participants, "started_at": now, "ended_at": now,
+    })
+    repo.add_turns(session_id, turns)
 
     # twin state from spoken updates
     updates = {}
@@ -136,28 +104,25 @@ def record_huddle(request: dict):
 
     # extract knowledge entries
     extraction = extract_entries(turns)
-    conn = _get_conn()
     stored_entries = []
     for entry in extraction.get("entries", []):
-        eid = str(uuid.uuid4())
-        conn.execute(
-            "INSERT INTO entries "
-            "(id, session_id, entry_type, speaker, title, body, equipment, product, batch, "
-            " citations, confidence, parsed_by, status, tags, severity, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (eid, session_id, entry.get("entry_type", ""),
-             entry.get("speaker", ""), entry.get("title", ""), entry.get("body", ""),
-             equipment, product, batch,
-             json.dumps(entry.get("citations", [])), 0.8,
-             extraction.get("parsed_by", "rules"),
-             "flag" if entry.get("severity") == "high" else "auto",
-             json.dumps(entry.get("tags", [])), entry.get("severity", "low"), now),
-        )
+        eid = repo.add_entry({
+            "session_id": session_id,
+            "entry_type": entry.get("entry_type", ""),
+            "speaker": entry.get("speaker", ""),
+            "title": entry.get("title", ""),
+            "body": entry.get("body", ""),
+            "equipment": equipment, "product": product, "batch": batch,
+            "citations": entry.get("citations", []),
+            "confidence": 0.8,
+            "parsed_by": extraction.get("parsed_by", "rules"),
+            "status": "flag" if entry.get("severity") == "high" else "auto",
+            "tags": entry.get("tags", []),
+            "severity": entry.get("severity", "low"),
+            "created_at": now,
+        })
         entry["id"] = eid
         stored_entries.append(entry)
-
-    conn.commit()
-    conn.close()
 
     return JSONResponse({
         "session_id": session_id,
@@ -228,17 +193,7 @@ def ask(request: dict):
     equipment = request.get("equipment", "")
     batch     = request.get("batch", "")
 
-    conn = _get_conn()
-    sql = "SELECT * FROM entries WHERE 1=1"
-    params = []
-    if equipment:
-        sql += " AND equipment = ?"; params.append(equipment)
-    if batch:
-        sql += " AND batch = ?"; params.append(batch)
-    rows = conn.execute(sql + " ORDER BY created_at DESC LIMIT 20", params).fetchall()
-    conn.close()
-
-    entries = [dict(r) for r in rows]
+    entries = repo.list_entries(equipment=equipment, batch=batch, limit=20)
     twin = {}
     if equipment:
         twin[equipment] = get_equipment_state(equipment)
@@ -265,34 +220,24 @@ def submit_feedback(request: dict):
     note = (request.get("note") or "").strip()
     now = datetime.datetime.utcnow().isoformat()
 
-    conn = _get_conn()
-    conn.execute(
-        "INSERT INTO feedback (id, entry_id, question, worked, note, created_at) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (str(uuid.uuid4()), entry_id, question, 1 if worked else 0, note, now),
-    )
+    repo.add_feedback({
+        "entry_id": entry_id, "question": question,
+        "worked": worked, "note": note, "created_at": now,
+    })
 
     new_entry_id = None
     if worked and entry_id:
-        conn.execute(
-            "UPDATE entries SET confidence = MIN(1.0, COALESCE(confidence, 0.8) + 0.05) "
-            "WHERE id = ?",
-            (entry_id,),
-        )
+        repo.bump_confidence(entry_id, 0.05)
     elif not worked and question:
-        new_entry_id = str(uuid.uuid4())
-        conn.execute(
-            "INSERT INTO entries "
-            "(id, session_id, entry_type, speaker, title, body, equipment, product, batch, "
-            " citations, confidence, parsed_by, status, tags, severity, created_at) "
-            "VALUES (?, NULL, 'tip', 'feedback', ?, ?, NULL, NULL, NULL, '[]', 0.5, "
-            "'feedback', 'flag', ?, 'medium', ?)",
-            (new_entry_id, f"Unresolved: {question[:60]}",
-             note or f"Operator asked: {question}. The answer did not resolve the issue.",
-             json.dumps(["feedback", "knowledge-gap"]), now),
-        )
-    conn.commit()
-    conn.close()
+        new_entry_id = repo.add_entry({
+            "session_id": None, "entry_type": "tip", "speaker": "feedback",
+            "title": f"Unresolved: {question[:60]}",
+            "body": note or f"Operator asked: {question}. The answer did not resolve the issue.",
+            "equipment": None, "product": None, "batch": None,
+            "citations": [], "confidence": 0.5, "parsed_by": "feedback",
+            "status": "flag", "tags": ["feedback", "knowledge-gap"],
+            "severity": "medium", "created_at": now,
+        })
 
     return JSONResponse({
         "success": True,
@@ -310,35 +255,20 @@ def submit_feedback(request: dict):
 # ── Approve / Dismiss ────────────────────────────────────────────────────────
 @app.post("/api/entry/{entry_id}/approve")
 def approve_entry(entry_id: str):
-    conn = _get_conn()
-    conn.execute("UPDATE entries SET status = 'approved' WHERE id = ?", (entry_id,))
-    conn.commit()
-    conn.close()
+    repo.set_entry_status(entry_id, "approved")
     return JSONResponse({"success": True, "entry_id": entry_id, "status": "approved"})
 
 
 @app.post("/api/entry/{entry_id}/dismiss")
 def dismiss_entry(entry_id: str):
-    conn = _get_conn()
-    conn.execute("UPDATE entries SET status = 'dismissed' WHERE id = ?", (entry_id,))
-    conn.commit()
-    conn.close()
+    repo.set_entry_status(entry_id, "dismissed")
     return JSONResponse({"success": True, "entry_id": entry_id, "status": "dismissed"})
 
 
 # ── Dashboard APIs ────────────────────────────────────────────────────────────
 @app.get("/api/entries")
 def list_entries(status: str = "", equipment: str = "", limit: int = 50):
-    conn = _get_conn()
-    sql = "SELECT * FROM entries WHERE 1=1"
-    params = []
-    if status:
-        sql += " AND status = ?"; params.append(status)
-    if equipment:
-        sql += " AND equipment = ?"; params.append(equipment)
-    rows = conn.execute(sql + " ORDER BY created_at DESC LIMIT ?", params + [limit]).fetchall()
-    conn.close()
-    return JSONResponse([dict(r) for r in rows])
+    return JSONResponse(repo.list_entries(status=status, equipment=equipment, limit=limit))
 
 
 @app.get("/api/twin/{equipment_id}")
@@ -348,22 +278,12 @@ def get_twin(equipment_id: str):
 
 @app.get("/api/sessions")
 def list_sessions(limit: int = 20):
-    conn = _get_conn()
-    rows = conn.execute(
-        "SELECT * FROM sessions ORDER BY started_at DESC LIMIT ?", (limit,)
-    ).fetchall()
-    conn.close()
-    return JSONResponse([dict(r) for r in rows])
+    return JSONResponse(repo.list_sessions(limit=limit))
 
 
 @app.get("/api/transcript/{session_id}")
 def get_transcript(session_id: str):
-    conn = _get_conn()
-    rows = conn.execute(
-        "SELECT * FROM transcript WHERE session_id = ? ORDER BY turn", (session_id,)
-    ).fetchall()
-    conn.close()
-    return JSONResponse([dict(r) for r in rows])
+    return JSONResponse(repo.get_turns(session_id))
 
 
 # ── HTML pages (static; also deployable to Vercel) ──────────────────────────

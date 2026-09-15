@@ -33,7 +33,7 @@ async function startRecord() {
 
   let token;
   try {
-    const tr = await fetch('/api/streaming-token?expires_in=300');
+    const tr = await fetch(galenApi('/api/streaming-token?expires_in=300'));
     const td = await tr.json();
     token = td.token;
     if (!token) throw new Error(td.error || 'no token');
@@ -155,7 +155,7 @@ let lastTranscript = '';
 async function submitHuddle(turnList) {
   els.status.textContent = `Extracting knowledge from ${turnList.length} turns...`;
   const meta = Object.fromEntries(new FormData(document.getElementById('meta')));
-  const res = await fetch('/api/huddle', {
+  const res = await fetch(galenApi('/api/huddle'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...meta, turns: turnList }),
@@ -183,7 +183,7 @@ function renderEntries(data) {
 }
 
 async function refreshTwin(equipment) {
-  const twin = await (await fetch(`/api/twin/${equipment}`)).json();
+  const twin = await (await fetch(galenApi(`/api/twin/${equipment}`))).json();
   els.twin.innerHTML = Object.entries(twin).map(([k, v]) =>
     `<div class="card"><strong>${k}</strong> ${v.value}${v.unit || ''}</div>`).join('');
 }
@@ -194,7 +194,7 @@ async function replayFixture() {
   els.transcript.innerHTML = '';
   els.entries.innerHTML = '';
 
-  const fixture = await (await fetch('/api/demo-huddle')).json();
+  const fixture = await (await fetch(galenApi('/api/demo-huddle'))).json();
   const stage = [
     ['shift_lead', 'Reactor R2 is running hot again this morning.'],
     ['operator', 'Temperature is at 62 degrees, we pulled the feed back to 30 percent.'],

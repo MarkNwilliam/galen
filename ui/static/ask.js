@@ -24,7 +24,7 @@ async function ask(payload) {
   lastPayload = payload;
   answerEl.textContent = 'Thinking...';
   feedbackEl.innerHTML = '';
-  const res = await fetch('/api/ask', {
+  const res = await fetch(galenApi('/api/ask'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -52,7 +52,7 @@ function renderFeedback() {
 
 async function sendFeedback(worked) {
   feedbackEl.innerHTML = '<span class="status">Recording…</span>';
-  const res = await fetch('/api/feedback', {
+  const res = await fetch(galenApi('/api/feedback'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -71,7 +71,7 @@ async function voiceAsk() {
   const chunks = [];
   mr.ondataavailable = e => chunks.push(e.data);
   mr.onstop = async () => {
-    const res = await fetch('/api/transcribe-file', {
+    const res = await fetch(galenApi('/api/transcribe-file'), {
       method: 'POST',
       body: new Blob(chunks, { type: 'audio/webm' }),
     });

@@ -13,6 +13,13 @@ and audits.
 
 Built for the **AssemblyAI Voice Agent Hackathon** (lablab.ai).
 
+## 🟢 Live demo
+
+- **App:** <https://galen-kb.vercel.app>
+- **Backend health:** <https://3strtwnmd0.execute-api.us-east-1.amazonaws.com/prod/health>
+- **Watch it, don't read it:** [`docs/RECORDING.md`](docs/RECORDING.md) is the
+  4-minute demo script (problem → capture → extract → ask → approve).
+
 ---
 
 ## The problem
@@ -94,18 +101,18 @@ See [`.env.example`](.env.example). The only required key is
 ## Project layout
 
 ```
-app/            FastAPI application and routes
+app/            FastAPI application and routes (+ Lambda entrypoint)
 agent/
   config.py     environment loading
-  storage.py    SQLite schema + connection (DynamoDB swap point)
+  repo.py       storage repository — SQLite and DynamoDB backends
   twin.py       twin-lite equipment state and thresholds
   rules.py      deterministic phrase/pattern analysis
   extract.py    LLM Gateway extraction + rule merge + fallbacks
   query.py      grounded retrieval and answer generation
-ui/             Jinja2 templates and static JS/CSS
-scripts/        demo seeding
+ui/             static frontend (config.js holds the backend API base)
+scripts/        demo seeding + Lambda build + AWS/Vercel deploy
 tests/          offline end-to-end tests
-docs/           architecture and submission notes
+docs/           architecture, deployment and recording notes
 ```
 
 ## Design principles

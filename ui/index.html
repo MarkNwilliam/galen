@@ -33,15 +33,16 @@
     </section>
   </main>
 
+  <script src="/static/config.js"></script>
   <script>
     async function load() {
-      const twin = await (await fetch('/api/twin/reactor_r2')).json();
+      const twin = await (await fetch(galenApi('/api/twin/reactor_r2'))).json();
       const twinHtml = Object.entries(twin).map(([k, v]) =>
         `<div class="card"><strong>${k}</strong><br/>${v.value} ${v.unit || ''}<br/><small>${v.updated || ''}</small></div>`
       ).join('');
       document.getElementById('twin').innerHTML = twinHtml;
 
-      const entries = await (await fetch('/api/entries?status=flag')).json();
+      const entries = await (await fetch(galenApi('/api/entries?status=flag'))).json();
       const flagHtml = entries.map(e => `
         <div class="entry flagged">
           <strong>${e.title}</strong> <span class="tag">${e.entry_type}</span>
@@ -54,7 +55,7 @@
         </div>`).join('');
       document.getElementById('flagged').innerHTML = flagHtml || '<p>No flagged entries.</p>';
 
-      const sessions = await (await fetch('/api/sessions')).json();
+      const sessions = await (await fetch(galenApi('/api/sessions'))).json();
       const sessHtml = sessions.map(s => `
         <div class="entry">
           <strong>Huddle ${s.id.slice(0, 8)}</strong> · ${s.equipment} · ${s.participants || ''}
@@ -64,11 +65,11 @@
     }
 
     async function approve(id) {
-      await fetch(`/api/entry/${id}/approve`, { method: 'POST' });
+      await fetch(galenApi(`/api/entry/${id}/approve`), { method: 'POST' });
       load();
     }
     async function dismiss(id) {
-      await fetch(`/api/entry/${id}/dismiss`, { method: 'POST' });
+      await fetch(galenApi(`/api/entry/${id}/dismiss`), { method: 'POST' });
       load();
     }
 

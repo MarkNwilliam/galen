@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from agent.storage import init_db, _get_conn
+from agent import repo
 from agent.extract import extract_entries
 from agent.twin import update_equipment_state, check_twin_alerts
 
@@ -56,62 +56,47 @@ METRIC_HISTORY = {
 
 
 def seed():
-    init_db()
-    conn = _get_conn()
-    now = datetime.datetime.utcnow().isoformat()
+    repo.init()
 
-    for eq, area, product in [
-        ("reactor_r2", "API Manufacturing", "Atorvastatin 20mg"),
-        ("line_4", "Packaging", "Atorvastatin 20mg"),
-    ]:
-        conn.execute(
-            "INSERT OR IGNORE INTO equipment (id, name, area, product, created_at) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (eq, eq.replace("_", " ").title(), area, product, now),
-        )
-    conn.commit()
-    conn.close()
+    repo.seed_equipment([
+        {"id": "reactor_r2", "name": "Reactor R2", "area": "API Manufacturing", "product": "Atorvastatin 20mg"},
+        {"id": "line_4", "name": "Line 4", "area": "Packaging", "product": "Atorvastatin 20mg"},
+    ])
 
     for huddle in HUDDLES:
         session_id = str(uuid.uuid4())
         turns = huddle["turns"]
         participants = sorted({t["speaker"] for t in turns})
 
-        conn = _get_conn()
-        conn.execute(
-            "INSERT INTO sessions (id, site, area, equipment, product, batch, participants, started_at, ended_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (session_id, "site_1", "floor_1", huddle["equipment"], huddle["product"],
-             huddle["batch"], json.dumps(participants), huddle["when"], huddle["when"]),
-        )
-        for i, t in enumerate(turns):
-            conn.execute(
-                "INSERT INTO transcript (session_id, turn, speaker, text, start_ms, end_ms, language) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (session_id, i, t["speaker"], t["text"], i * 6000, (i + 1) * 6000, t.get("language", "en")),
-            )
-        conn.commit()
-        conn.close()
+        repo.create_session({
+            "id": session_id, "site": "site_1", "area": "floor_1",
+            "equipment": huddle["equipment"], "product": huddle["product"],
+            "batch": huddle["batch"], "participants": participants,
+            "started_at": huddle["when"], "ended_at": huddle["when"],
+        })
+        repo.add_turns(session_id, [
+            {**t, "start_ms": i * 6000, "end_ms": (i + 1) * 6000}
+            for i, t in enumerate(turns)
+        ])
 
         extraction = extract_entries(turns)
-        conn = _get_conn()
         for entry in extraction.get("entries", []):
-            status = "flag" if entry.get("severity") == "high" else "auto"
-            conn.execute(
-                "INSERT INTO entries "
-                "(id, session_id, entry_type, speaker, title, body, equipment, product, batch, "
-                " citations, confidence, parsed_by, status, tags, severity, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (str(uuid.uuid4()), session_id, entry.get("entry_type", ""),
-                 entry.get("speaker", ""), entry.get("title", ""), entry.get("body", ""),
-                 huddle["equipment"], huddle["product"], huddle["batch"],
-                 json.dumps(entry.get("citations", [])), 0.85,
-                 extraction.get("parsed_by", "rules"), status,
-                 json.dumps(entry.get("tags", []) or []), entry.get("severity", "low"),
-                 huddle["when"]),
-            )
-        conn.commit()
-        conn.close()
+            repo.add_entry({
+                "session_id": session_id,
+                "entry_type": entry.get("entry_type", ""),
+                "speaker": entry.get("speaker", ""),
+                "title": entry.get("title", ""),
+                "body": entry.get("body", ""),
+                "equipment": huddle["equipment"], "product": huddle["product"],
+                "batch": huddle["batch"],
+                "citations": entry.get("citations", []),
+                "confidence": 0.85,
+                "parsed_by": extraction.get("parsed_by", "rules"),
+                "status": "flag" if entry.get("severity") == "high" else "auto",
+                "tags": entry.get("tags", []) or [],
+                "severity": entry.get("severity", "low"),
+                "created_at": huddle["when"],
+            })
 
     # twin-lite metric history
     for equipment, readings in METRIC_HISTORY.items():
@@ -121,13 +106,11 @@ def seed():
         update_equipment_state(equipment, updates)
         check_twin_alerts(equipment, updates)
 
-    # summary
-    conn = _get_conn()
-    entries = conn.execute("SELECT COUNT(*) c FROM entries").fetchone()["c"]
-    sessions = conn.execute("SELECT COUNT(*) c FROM sessions").fetchone()["c"]
-    flags = conn.execute("SELECT COUNT(*) c FROM entries WHERE status='flag'").fetchone()["c"]
-    conn.close()
-    print(f"Seeded {sessions} sessions, {entries} entries ({flags} flagged for review).")
+    summary = repo.counts()
+    print(
+        f"Seeded {summary['sessions']} sessions, {summary['entries']} entries "
+        f"({summary['flags']} flagged for review) into '{repo.backend_name()}'."
+    )
 
 
 if __name__ == "__main__":

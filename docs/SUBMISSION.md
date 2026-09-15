@@ -1,5 +1,11 @@
 # Submission copy
 
+## Live links
+
+- **Demo URL:** https://galen-kb.vercel.app
+- **Repository (public):** https://github.com/MarkNwilliam/galen
+- **Backend health:** https://3strtwnmd0.execute-api.us-east-1.amazonaws.com/prod/health
+
 ## Title
 
 **Galen — the voice knowledge bank for pharmaceutical manufacturing**
@@ -66,6 +72,9 @@ or Swahili. It never loses a known warning to a failed API call, and it never
 stays silent when something's wrong."
 
 ## 4-minute demo video script
+
+See **`docs/RECORDING.md`** for the live, click-by-click recording runbook
+(with the exact URLs and spoken lines). High-level beats:
 
 **0:00–0:30 — Problem.** A retiring operator, a 6am huddle, a near-miss nobody
 recorded. "This is where process knowledge dies."

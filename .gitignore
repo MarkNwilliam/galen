@@ -12,6 +12,7 @@ __pycache__/
 .venv/
 venv/
 bundle.zip
+galen_lambda.zip
 build/
 build3/
 dist/

@@ -10,34 +10,13 @@ KNOWN_THRESHOLDS = {
 
 
 def get_equipment_state(equipment: str) -> Dict[str, Any]:
-    from agent.storage import _get_conn
-    conn = _get_conn()
-    rows = conn.execute(
-        "SELECT metric_key, value, unit, last_updated "
-        "FROM metrics WHERE equipment_id = ?", (equipment,)
-    ).fetchall()
-    conn.close()
-    return {r["metric_key"]: {"value": r["value"], "unit": r["unit"],
-                               "updated": r["last_updated"]} for r in rows}
+    from agent import repo
+    return repo.get_metrics(equipment)
 
 
 def update_equipment_state(equipment: str, updates: Dict[str, Any]):
-    from agent.storage import _get_conn
-    conn = _get_conn()
-    now = datetime.datetime.utcnow().isoformat()
-    for key, val in updates.items():
-        if isinstance(val, dict):
-            value, unit = val.get("value"), val.get("unit", "")
-        else:
-            value, unit = float(val), ""
-        conn.execute(
-            "INSERT OR REPLACE INTO metrics "
-            "(equipment_id, metric_key, value, unit, source, last_updated) "
-            "VALUES (?, ?, ?, ?, 'spoken', ?)",
-            (equipment, key, value, unit, now)
-        )
-    conn.commit()
-    conn.close()
+    from agent import repo
+    repo.set_metrics(equipment, updates)
 
 
 def check_twin_alerts(equipment: str, updates: Dict[str, Any]) -> List[Dict[str, Any]]:
